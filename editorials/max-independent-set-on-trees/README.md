@@ -96,17 +96,44 @@ $$
 
 ## Base Case
 
-For a leaf node $u$:
+The base case occurs when we reach a **leaf node** \( u \) in the rooted tree.
 
-$$
+A leaf node has no children (except possibly its parent),  
+so the subtree rooted at \( u \) contains only the node \( u \) itself.
+
+We consider two possible decisions:
+
+### Case 1: Exclude \( u \)
+
+- We do not include node \( u \) in the independent set.
+- Since there are no children to consider,
+- No vertices contribute to the independent set in this subtree.
+
+\[
 dp[u][0] = 0
-$$
-
-$$
-dp[u][1] = 1
-$$
+\]
 
 ---
+
+### Case 2: Include \( u \)
+
+- We include node \( u \) in the independent set.
+- This contributes exactly one vertex.
+- There are no child conflicts because the node is a leaf.
+
+\[
+dp[u][1] = 1
+\]
+
+---
+
+Thus, for every leaf node:
+
+\[
+dp[u][0] = 0,  dp[u][1] = 1
+\]
+
+These values initialize the dynamic programming and allow results to propagate upward during DFS.
 
 ## Final Answer
 
@@ -269,86 +296,111 @@ Worst case: $O(n)$
 
 # Advanced Section: Treewidth
 
-
-Treewidth measures how “tree-like” a graph is.
-
-- Trees have treewidth = 1  
-- Cycles have treewidth = 2  
-- A clique on $n$ vertices has treewidth $n-1$
-
-If the largest bag in a tree decomposition has size $w+1$, the graph has treewidth $w$.
+Treewidth measures how “tree-like” a graph is.  
+Many dynamic programming algorithms that work on trees can be generalized to graphs with small treewidth.
 
 ---
 
-## DP on Tree Decomposition
+## Tree Decomposition
 
-For each bag $X_t$ and subset $S \subseteq X_t$ that is independent, define:
+![Tree Decomposition Example](docs/images/tree_decomposition_example.png)
 
-$$
-dp_t(S)
-$$
+The left side of the figure shows the original graph.  
+The right side shows a **tree decomposition** of that graph.
 
-as the maximum size of an independent set consistent with selecting exactly $S$ inside $X_t$.
+Each circle on the right is called a **bag**, and it contains a subset of vertices from the original graph.
 
-Since $|X_t| \le w+1$:
+For example:
 
-$$
-\text{States per bag} = O(2^{w+1})
-$$
+- The highlighted bag \( B_6 = \{6,7,9\} \)
+- Other bags include \( \{4,6,9\} \), \( \{5,6,7\} \), \( \{7,8,9\} \), etc.
 
----
-
-## Recurrences
-
-### Introduce Node
-
-If $v \notin S$:
-
-$$
-dp_t(S) = dp_{child}(S)
-$$
-
-If $v \in S$:
-
-$$
-dp_t(S) = dp_{child}(S \setminus \{v\}) + 1
-$$
+These bags are connected in a tree structure.
 
 ---
 
-### Forget Node
+## Formal Definition of Tree Decomposition
 
-$$
-dp_t(S) = \max(dp_{child}(S), dp_{child}(S \cup \{v\}))
-$$
+A tree decomposition of a graph \( G = (V,E) \) is a tree whose nodes are bags \( X_t ⊆ V \) such that:
+
+1. **Vertex Covering Property**  
+   Every vertex in \( V \) appears in at least one bag.
+
+2. **Edge Covering Property**  
+   For every edge \( (u,v) in E \),  
+   there exists a bag containing both \( u \) and \( v \).
+
+3. **Running Intersection Property**  
+   For any vertex \( v \),  
+   the bags containing \( v \) form a connected subtree.
+
+In the shown diagram:
+
+- Every edge of the original graph appears together inside some bag.
+- All bags containing vertex 9 form a connected region in the decomposition tree.
 
 ---
 
-### Join Node
+## What is a Bag?
 
-$$
-dp_t(S) = dp_{left}(S) + dp_{right}(S) - |S|
-$$
+A **bag** \( X_t ⊆ V \) is simply a subset of vertices.
+
+Instead of performing DP on individual vertices (as in trees),  
+we perform DP on subsets of vertices inside each bag.
+
+For a bag of size \( k \), we may need to consider up to \( 2^k \) subsets.
 
 ---
 
-## Total Complexity
+## Treewidth Definition
 
-$$
-O(2^w \cdot n)
-$$
+If the largest bag in a decomposition has size \( w+1 \), then:
 
-Thus MIS is solvable in:
+treewidth(G) = w
 
-$$
-O\big(2^{\text{treewidth}(G)} \cdot \text{poly}(n)\big)
-$$
+In the provided example:
 
-For trees ($w=1$):
+- The largest bag contains 3 vertices.
+- Therefore, the treewidth of the graph is:
 
-$$
-O(n)
-$$
+\[
+3 - 1 = 2
+\]
+
+Examples:
+
+- Trees → treewidth = 1  
+- Cycles → treewidth = 2  
+- Clique on \( n \) vertices → treewidth = \( n-1 \)
+
+---
+
+## Key Insight: Extending Tree Algorithms
+
+Any divide-and-conquer style dynamic programming algorithm
+that works on trees can be generalized to graphs of bounded treewidth.
+
+The only penalty is an exponential factor in the treewidth.
+
+If the treewidth of a graph \( G \) is \( w \), then many problems
+(including Maximum Independent Set) can be solved in:
+
+O(2^tw(G) * n)
+
+time and space.
+
+This exponential factor arises because:
+
+- Each bag may contain up to \( w+1 \) vertices.
+- We must consider all subsets of the bag.
+- The number of subsets is \( 2^{w+1} \).
+
+Thus:
+
+- Trees (tw(G) = 1) → O(n)
+- Low treewidth graphs → Fixed Parameter Tractable (FPT)
+- Large treewidth → Exponential blowup
+
 
 ---
 
@@ -364,9 +416,13 @@ solution.cpp
 
 # Related Practice Problems
 
-- LeetCode 337 — House Robber III  
-- Minimum Vertex Cover on Trees  
-- LeetCode 968 — Binary Tree Cameras  
+- [House Robber III (LeetCode 337)](https://leetcode.com/problems/house-robber-iii/)  
+  This is exactly the Maximum Independent Set problem on a binary tree.
+
+- [Binary Tree Cameras (LeetCode 968)](https://leetcode.com/problems/binary-tree-cameras/)  
+  A tree DP problem with multi-state design.
+
+- Minimum Vertex Cover on Trees
 
 ---
 
